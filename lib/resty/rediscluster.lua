@@ -1,6 +1,6 @@
 local ffi = require 'ffi'
 
-
+local ngx = ngx
 local ffi_new = ffi.new
 local C = ffi.C
 local crc32 = ngx.crc32_short
@@ -135,6 +135,7 @@ function _M.fetch_slots(self)
         local ip = serv_list[i].ip
         local port = serv_list[i].port
         local ok, err = red:connect(ip_string(ip), port)
+        local ok, err = red:auth(self.config.auth)
         if ok then
             local slot_info, err = red:cluster("slots")
             if slot_info then
@@ -150,8 +151,6 @@ function _M.fetch_slots(self)
                     end
                 end
                 slot_cache[self.config.name] = slots
-                --self.slots = slots
-                --debug_log("fetch_slots", self)
             end
         end
     end
@@ -171,6 +170,7 @@ function _M.new(self, config)
     inst.config = config
     inst = setmetatable(inst, mt)
     inst:init_slots()
+    
     return inst
 end
 
@@ -211,6 +211,7 @@ local function _do_cmd(self, cmd, key, ...)
             local port = serv_list[index].port
             local redis_client = redis:new()
             local ok, err = redis_client:connect(ip_string(ip), port)
+            local ok, err = redis_client:auth(self.config.auth)
             if ok then
                 slots[slot].cur = index
                 local res, err = redis_client[cmd](redis_client, key, ...)
